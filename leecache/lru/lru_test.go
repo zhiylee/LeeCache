@@ -6,7 +6,7 @@ import (
 
 type String string
 
-func (s String) len() int {
+func (s String) Len() int {
 	return len(s)
 }
 
@@ -33,5 +33,9 @@ func TestCache_Eliminate(t *testing.T) {
 
 	if _, ok := lru.Get(k[0]); ok || lru.Len() != 2 {
 		t.Fatalf("Eliminate failed,not deleted the oldest entry k1")
+	}
+
+	if value, ok := lru.Get(k[2]); !ok || string(value.(String)) != v[2] {
+		t.Fatalf("Add k2=value2 failed")
 	}
 }

@@ -20,31 +20,40 @@ func (c *Cache) Eliminate() {
 	ent := ele.Value.(*entry)
 	c.ll.Remove(ele)
 	delete(c.cache, ent.key)
-	c.nowBytes -= int64(ent.len())
+	c.nowBytes -= int64(ent.Len())
 
 }
 
 // Add or Update entry
 func (c *Cache) Add(key string, value Value) bool {
+	var requireBytes int64 = 0
 	if ele, ok := c.cache[key]; ok { //尝试获取map，存在则更新
 		c.ll.MoveToFront(ele)
 		ent := ele.Value.(*entry)
-		c.nowBytes += int64(value.len() - ent.value.len()) //更新内存
+		requireBytes = int64(value.Len() - ent.value.Len())
+		c.recycleSpace(requireBytes) //腾出足够的空间
 		ent.value = value
 	} else { //不存在则新增
 		ent := entry{key, value}
+		requireBytes = int64(ent.Len())
+		c.recycleSpace(requireBytes)
 		ele := c.ll.PushFront(&ent)
 		c.cache[key] = ele
-		c.nowBytes += int64(ent.len())
 	}
 
-	//对超出的内存进行回收
-	//先增添再回收，占用的内存会少量溢出maxBytes
-	for c.maxBytes != 0 && c.nowBytes != 0 && c.nowBytes > c.maxBytes {
-		c.Eliminate()
-	}
+	c.nowBytes += requireBytes //更新内存占用大小
 
 	return true
+}
+
+//内存回收 腾出足够的空间
+func (c *Cache) recycleSpace(requireBytes int64) {
+	if requireBytes <= 0 || c.maxBytes <= 0 {
+		return
+	}
+	for c.maxBytes-c.nowBytes < requireBytes {
+		c.Eliminate()
+	}
 }
 
 // Len of cache entry

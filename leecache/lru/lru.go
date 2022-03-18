@@ -11,19 +11,19 @@ type Cache struct {
 	// Todo:callback on add && delete
 }
 
-// 缓存的对象 双向链表的数据类型
+// 缓存的对象
 type entry struct {
 	key   string
 	value Value
 }
 
-func (ent entry) len() int {
-	return len(ent.key) + ent.value.len()
+func (ent entry) Len() int {
+	return len(ent.key) + ent.value.Len()
 }
 
-// 缓存的数据
+// Value 缓存的数据
 type Value interface {
-	len() int
+	Len() int
 }
 
 func New(maxBytes int64) *Cache {
