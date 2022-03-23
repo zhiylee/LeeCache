@@ -1,6 +1,8 @@
 package leecache
 
 import (
+	"LeeCache/peers"
+	"LeeCache/status"
 	"fmt"
 	"log"
 	"sync"
@@ -10,6 +12,7 @@ type Group struct {
 	name   string
 	getter Getter
 	c      cache
+	Peers  *peers.Pool
 }
 
 // mux : read and write mutex for var "groups"
@@ -44,7 +47,7 @@ func (g *Group) Get(key string) (ByteView, error) {
 	}
 
 	if v, ok := g.c.get(key); ok {
-		log.Printf("[LeeCache] key = %s hit\n", key)
+		status.Log("key = %s hit", key)
 		return v, nil
 	}
 
@@ -53,6 +56,18 @@ func (g *Group) Get(key string) (ByteView, error) {
 
 // load : load value when not hit
 func (g *Group) load(key string) (ByteView, error) {
+	if g.Peers != nil {
+		if peer, ok := g.Peers.Pick(key); ok && peer.Addr != Localhost {
+			value, err := g.getFromPeer(peer, key)
+			if err != nil {
+				status.Log("failed to get cache from peer %s", peer.Addr)
+			}
+
+			return value, nil
+		}
+	}
+
+	//get from localhost when no peer
 	return g.getFromLocally(key)
 }
 
@@ -68,6 +83,16 @@ func (g *Group) getFromLocally(key string) (ByteView, error) {
 	g.c.add(key, v)
 
 	return v, nil
+}
+
+// getFromPeer : get value from peer
+func (g *Group) getFromPeer(peer *peers.Peer, key string) (ByteView, error) {
+	bytes, err := peer.Getter.Get(g.name, key)
+	if err != nil {
+		return ByteView{}, err
+	}
+
+	return ByteView{bytes}, nil
 }
 
 // GetGroup : get a group use name
