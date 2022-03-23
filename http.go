@@ -1,7 +1,9 @@
 package leecache
 
 import (
+	pb "LeeCache/leecachepb"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"log"
 	"net/http"
 	"strings"
@@ -53,6 +55,12 @@ func (s *HTTPServe) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	body, err := proto.Marshal(&pb.GetResponse{Value: view.ByteCopy()})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(view.ByteCopy())
+	w.Write(body)
 }

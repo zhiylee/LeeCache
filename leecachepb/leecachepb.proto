@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package="./;leecachepb";
+package leecachepb;
+
+message GetRequest {
+  string group = 1;
+  string key = 2;
+}
+
+message GetResponse {
+  bytes value = 1;
+}
+
+service LeeCache {
+  rpc Get(GetRequest) returns (GetResponse);
+}

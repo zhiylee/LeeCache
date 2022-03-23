@@ -2,6 +2,7 @@ package leecache
 
 import (
 	"LeeCache/peers"
+	"LeeCache/singleflight"
 	"LeeCache/status"
 	"fmt"
 	"log"
@@ -13,6 +14,7 @@ type Group struct {
 	getter Getter
 	c      cache
 	Peers  *peers.Pool
+	loader *singleflight.Group
 }
 
 // mux : read and write mutex for var "groups"
@@ -34,6 +36,7 @@ func NewGroup(name string, getter Getter, maxBytes int64) *Group {
 		name:   name,
 		getter: getter,
 		c:      cache{maxBytes: maxBytes},
+		loader: &singleflight.Group{},
 	}
 	groups[name] = g
 
@@ -56,19 +59,28 @@ func (g *Group) Get(key string) (ByteView, error) {
 
 // load : load value when not hit
 func (g *Group) load(key string) (ByteView, error) {
-	if g.Peers != nil {
-		if peer, ok := g.Peers.Pick(key); ok && peer.Addr != Localhost {
-			value, err := g.getFromPeer(peer, key)
-			if err != nil {
-				status.Log("failed to get cache from peer %s", peer.Addr)
-			}
+	viewi, err := g.loader.Do(key, func() (interface{}, error) {
+		//use singleflight make the duplicate function call at some time into one
+		if g.Peers != nil {
+			if peer, ok := g.Peers.Pick(key); ok && peer.Addr != Localhost {
+				value, err := g.getFromPeer(peer, key)
+				if err != nil {
+					status.Log("failed to get cache from peer %s", peer.Addr)
+				}
 
-			return value, nil
+				return value, nil
+			}
 		}
+
+		//get from localhost when no peer
+		return g.getFromLocally(key)
+	})
+
+	if err != nil {
+		return ByteView{}, err
 	}
 
-	//get from localhost when no peer
-	return g.getFromLocally(key)
+	return viewi.(ByteView), nil
 }
 
 // getFromLocally : get value from localhost

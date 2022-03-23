@@ -1,7 +1,7 @@
 package leecache
 
 import (
-	"LeeCache/leecache/lru"
+	"LeeCache/lru"
 	"sync"
 )
 
