@@ -61,6 +61,6 @@ func (s *HTTPServe) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Type", "application/x-protobuf")
 	w.Write(body)
 }
