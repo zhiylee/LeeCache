@@ -20,11 +20,18 @@ func (p *Peer) isAvailable() bool {
 	return p.Status == 200
 }
 
-func NewPeer(name string, addr string) *Peer {
+func NewPeer(name string, addr string, a string) *Peer {
+	var g Getter
+	if a == "http" {
+		g = &HTTPGetter{addr}
+	} else {
+		g = &RPCGetter{addr}
+	}
+
 	return &Peer{
 		Name:   name,
 		Addr:   addr,
 		Status: StatusOK,
-		Getter: &HTTPGetter{addr},
+		Getter: g,
 	}
 }

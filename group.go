@@ -65,7 +65,7 @@ func (g *Group) load(key string) (ByteView, error) {
 			if peer, ok := g.Peers.Pick(key); ok && peer.Addr != Localhost {
 				value, err := g.getFromPeer(peer, key)
 				if err != nil {
-					status.Log("failed to get cache from peer %s", peer.Addr)
+					status.Log("failed to get cache from peer %s: %v", peer.Addr, err)
 				}
 
 				return value, nil
